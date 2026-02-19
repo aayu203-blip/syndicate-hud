@@ -27,13 +27,17 @@
         }
         #hud {
             position: fixed; bottom: 20px; left: 20px;
-            padding: 14px 18px;
+            padding: 20px;
             background: var(--bg); border: 1px solid var(--green); border-radius: 6px;
             backdrop-filter: blur(4px); pointer-events: none;
             display: flex; flex-direction: column; gap: 6px;
             box-shadow: 0 0 12px rgba(0, 255, 65, 0.2);
         }
-        .hud-row { display: flex; justify-content: space-between; gap: 24px; font-size: 13px; font-weight: bold; text-shadow: 0 0 6px var(--green); }
+        .hud-row { 
+            display: flex; justify-content: space-between; gap: 24px; 
+            font-size: 18px;
+            font-weight: bold; text-shadow: 0 0 6px var(--green); 
+        }
         .hud-row .val { min-width: 60px; text-align: right; }
         .heat-alert { color: var(--red); text-shadow: 0 0 6px var(--red); animation: pulse 1s infinite; }
         #terminal {
@@ -70,11 +74,11 @@
         <div class="hud-row"><span>CLEAN CASH</span><span class="val" id="v-clean">$0</span></div>
         <div class="hud-row"><span>HEAT</span><span class="val" id="v-heat">0%</span></div>
         <div class="hud-row"><span>RACKETS</span><span class="val" id="v-rackets">0</span></div>
-        <button id="btn-steal" onclick="manualClick()" style="margin-top:8px; width:100%; padding:4px; border:1px solid var(--green); background:rgba(0,255,65,0.1); color:var(--green); cursor:pointer; font-family:inherit; font-weight:bold;">STEAL ($10)</button>
+        <button id="btn-steal" onclick="manualClick()" style="margin-top:8px; width:100%; padding:10px; border:1px solid var(--green); background:rgba(0,255,65,0.1); color:var(--green); cursor:pointer; font-family:inherit; font-weight:bold; font-size:16px;">STEAL ($10)</button>
     </div>
     <div id="terminal" style="display:none;">
         <div class="t-header">
-            <h2>▸ SYNDICATE TERMINAL v2.3</h2>
+            <h2>▸ SYNDICATE TERMINAL v2.4</h2>
             <button class="close-btn" onclick="closeTerminal()">[X] DISCONNECT</button>
         </div>
         <div class="grid">
@@ -143,11 +147,11 @@
                 let msg = raw;
                 if (typeof raw === 'string') { try { msg = JSON.parse(raw); } catch (e) { if (raw === 'open') openTerminal(); log('MSG: ' + raw); return; } }
                 if (msg.action === 'sync') {
-                    if (msg.dirty !== undefined) state.dirty = msg.dirty;
-                    if (msg.clean !== undefined) state.clean = msg.clean;
-                    if (msg.heat !== undefined) state.heat = msg.heat;
-                    if (msg.rackets !== undefined) state.rackets = msg.rackets;
-                    if (msg.rate !== undefined) state.rate = msg.rate;
+                    if (msg.dirty !== undefined) state.dirty = Number(msg.dirty) || 0;
+                    if (msg.clean !== undefined) state.clean = Number(msg.clean) || 0;
+                    if (msg.heat !== undefined) state.heat = Number(msg.heat) || 0;
+                    if (msg.rackets !== undefined) state.rackets = Number(msg.rackets) || 0;
+                    if (msg.rate !== undefined) state.rate = Number(msg.rate) || 0;
                     updateHUD();
                 } else if (msg.action === 'open') { openTerminal(); }
             });
