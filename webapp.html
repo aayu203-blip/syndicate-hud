@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syndicate Terminal</title>
+    <script src="https://portals-labs.github.io/portals-sdk/portals-sdk.js?v=10005456"></script>
+    <style>
+        :root {
+            --green: #00ff41;
+            --red: #ff3333;
+            --bg: rgba(0, 0, 0, 0.3);
+            --terminal-bg: rgba(0, 10, 0, 0.96);
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Courier New', monospace;
+            background: transparent;
+            color: var(--green);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* ── SCANLINES ── */
+        #scanlines {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 999;
+            background: repeating-linear-gradient(to bottom,
+                    transparent 0px, transparent 2px,
+                    rgba(0, 0, 0, 0.08) 2px, rgba(0, 0, 0, 0.08) 4px);
+        }
+
+        /* ── HUD OVERLAY ── */
+        #hud {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 14px 18px;
+            background: var(--bg);
+            border: 1px solid var(--green);
+            border-radius: 6px;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            box-shadow: 0 0 12px rgba(0, 255, 65, 0.2);
+        }
+
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            font-size: 13px;
+            font-weight: bold;
+            text-shadow: 0 0 6px var(--green);
+        }
+
+        .hud-row .val {
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .heat-alert {
+            color: var(--red);
+            text-shadow: 0 0 6px var(--red);
+            animation: pulse 1s infinite;
+        }
+
+        /* ── TERMINAL PANEL ── */
+        #terminal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            background: var(--terminal-bg);
+            border: 2px solid var(--green);
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.3);
+            padding: 20px;
+        }
+
+        .t-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--green);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+
+        .t-header h2 {
+            font-size: 16px;
+            letter-spacing: 2px;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: 1px solid var(--green);
+            color: var(--green);
+            cursor: pointer;
+            padding: 6px 12px;
+            font-family: inherit;
+            font-size: 13px;
+        }
+
+        .close-btn:hover {
+            background: var(--green);
+            color: black;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .panel {
+            border: 1px solid rgba(0, 255, 65, 0.25);
+            padding: 14px;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .panel-title {
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background: #000a00;
+            padding: 0 6px;
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+
+        /* ── UPGRADE BUTTONS ── */
+        .buy-btn {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid var(--green);
+            color: var(--green);
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.15s, box-shadow 0.15s;
+            font-family: inherit;
+            font-size: 13px;
+        }
+
+        .buy-btn:hover {
+            background: rgba(0, 255, 65, 0.15);
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+        }
+
+        .buy-btn:disabled {
+            border-color: #333;
+            color: #444;
+            cursor: not-allowed;
+            background: transparent;
+        }
+
+        .btn-top {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+        }
+
+        .btn-desc {
+            font-size: 10px;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        /* ── LOGS ── */
+        #logs {
+            font-size: 11px;
+            opacity: 0.75;
+            line-height: 1.6;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="scanlines"></div>
+
+    <!-- HUD always visible -->
+    <div id="hud">
+        <div class="hud-row"><span>DIRTY CASH</span><span class="val" id="v-dirty">$0</span></div>
+        <div class="hud-row"><span>CLEAN CASH</span><span class="val" id="v-clean">$0</span></div>
+        <div class="hud-row"><span>HEAT</span><span class="val" id="v-heat">0%</span></div>
+        <div class="hud-row"><span>RACKETS</span><span class="val" id="v-rackets">0</span></div>
+    </div>
+
+    <!-- Terminal panel (open on demand) -->
+    <div id="terminal">
+        <div class="t-header">
+            <h2>▸ SYNDICATE TERMINAL v2.0</h2>
+            <button class="close-btn" onclick="closeTerminal()">[X] DISCONNECT</button>
+        </div>
+        <div class="grid">
+            <!-- Shop -->
+            <div class="panel">
+                <span class="panel-title">BLACK MARKET</span>
+                <button class="buy-btn" id="btn-slot" onclick="buy('SlotMachine', 100)">
+                    <div class="btn-top"><span>SLOT MACHINE</span><span>$100</span></div>
+                    <div class="btn-desc">+5 dirty cash per tick. Raises heat slowly.</div>
+                </button>
+                <button class="buy-btn" id="btn-wash" onclick="buy('Laundromat', 500)">
+                    <div class="btn-top"><span>LAUNDROMAT</span><span>$500</span></div>
+                    <div class="btn-desc">+5 launder rate per tick. Reduces heat pressure.</div>
+                </button>
+            </div>
+            <!-- Logs -->
+            <div class="panel">
+                <span class="panel-title">SYSTEM LOGS</span>
+                <div id="logs">
+                    <div>&gt; System initialized</div>
+                    <div>&gt; Waiting for server sync...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── STATE ──
+        const state = { dirty: 0, clean: 0, heat: 0, rackets: 0 };
+
+        // ── UI UPDATE ──
+        function updateHUD() {
+            document.getElementById('v-dirty').textContent = '$' + Math.floor(state.dirty);
+            document.getElementById('v-clean').textContent = '$' + Math.floor(state.clean);
+            document.getElementById('v-rackets').textContent = Math.floor(state.rackets);
+            const hEl = document.getElementById('v-heat');
+            hEl.textContent = Math.floor(state.heat) + '%';
+            hEl.className = 'val' + (state.heat > 80 ? ' heat-alert' : '');
+
+            // Disable buy buttons if can't afford
+            const btnSlot = document.getElementById('btn-slot');
+            const btnWash = document.getElementById('btn-wash');
+            if (btnSlot) btnSlot.disabled = state.dirty < 100;
+            if (btnWash) btnWash.disabled = state.dirty < 500;
+        }
+
+        // ── LOGS ──
+        function log(msg) {
+            const el = document.getElementById('logs');
+            const line = document.createElement('div');
+            line.textContent = '> ' + msg;
+            el.appendChild(line);
+            el.scrollTop = el.scrollHeight;
+            // Keep max 40 lines
+            while (el.children.length > 40) el.removeChild(el.firstChild);
+        }
+
+        // ── TERMINAL OPEN / CLOSE ──
+        function openTerminal() {
+            document.getElementById('terminal').style.display = 'flex';
+        }
+        function closeTerminal() {
+            document.getElementById('terminal').style.display = 'none';
+            try { PortalsSdk.focusGameKeyboard(); } catch (e) { }
+        }
+
+        // ── BUY ──
+        function buy(item, cost) {
+            if (state.dirty < cost) { log('INSUFFICIENT FUNDS'); return; }
+            const taskNames = { SlotMachine: '1_BuySlotMachine', Laundromat: '2_BuyLaundromat' };
+            try {
+                PortalsSdk.sendMessageToUnity(JSON.stringify({
+                    TaskName: taskNames[item],
+                    TaskTargetState: 'SetNotActiveToCompleted'
+                }));
+                log('REQ: ' + item + ' purchase sent...');
+                PortalsSdk.focusGameKeyboard();
+            } catch (e) {
+                log('ERR: ' + e.message);
+            }
+        }
+
+        // ── SDK MESSAGE LISTENER ──
+        // Per Portals docs: use PortalsSdk.setMessageListener, parse JSON
+        function initSDK() {
+            if (typeof PortalsSdk === 'undefined') {
+                log('ERR: PortalsSdk not loaded');
+                return;
+            }
+            PortalsSdk.setMessageListener(function (raw) {
+                // Raw message from SendMessageToIframes effect
+                // Format: {"action":"sync","dirty":N,"clean":N,"heat":N,"rackets":N}
+                let msg = raw;
+                if (typeof raw === 'string') {
+                    try { msg = JSON.parse(raw); }
+                    catch (e) {
+                        // Plain string commands
+                        if (raw === 'open') openTerminal();
+                        log('MSG: ' + raw);
+                        return;
+                    }
+                }
+
+                if (msg.action === 'sync') {
+                    if (msg.dirty !== undefined) state.dirty = msg.dirty;
+                    if (msg.clean !== undefined) state.clean = msg.clean;
+                    if (msg.heat !== undefined) state.heat = msg.heat;
+                    if (msg.rackets !== undefined) state.rackets = msg.rackets;
+                    updateHUD();
+                } else if (msg.action === 'open') {
+                    openTerminal();
+                }
+            });
+            log('SDK: listener registered');
+        }
+
+        // Wait for SDK to load before registering
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSDK);
+        } else {
+            initSDK();
+        }
+        updateHUD();
+    </script>
+</body>
+
+</html>
