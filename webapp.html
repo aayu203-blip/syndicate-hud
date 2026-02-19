@@ -42,7 +42,7 @@
     </div>
     <div id="terminal">
         <div class="t-header">
-            <h2>SYNDICATE TERMINAL v2.1 (HUD FIX)</h2>
+            <h2>SYNDICATE TERMINAL v2.2 (logic fix)</h2>
             <button class="close-btn" onclick="closeTerminal()">[X] DISCONNECT</button>
         </div>
         <div class="grid">
@@ -93,7 +93,8 @@
         function buy(item, cost) {
             if (state.dirty < cost) { log('INSUFFICIENT FUNDS'); return; }
             const taskNames = { SlotMachine: '1_BuySlotMachine', Laundromat: '2_BuyLaundromat' };
-            try { PortalsSdk.sendMessageToUnity(JSON.stringify({ TaskName: taskNames[item], TaskTargetState: 'SetNotActiveToCompleted' })); log('REQ: ' + item + ' purchase sent...'); PortalsSdk.focusGameKeyboard(); } catch(e) { log('ERR: ' + e.message); }
+            // FIX: Use SetActiveToCompleted to trigger auto-started quests from Active -> Completed
+            try { PortalsSdk.sendMessageToUnity(JSON.stringify({ TaskName: taskNames[item], TaskTargetState: 'SetActiveToCompleted' })); log('REQ: ' + item + ' purchase sent...'); PortalsSdk.focusGameKeyboard(); } catch(e) { log('ERR: ' + e.message); }
         }
         function initSDK() {
             if (typeof PortalsSdk === 'undefined') { log('ERR: PortalsSdk not loaded'); return; }
