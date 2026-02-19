@@ -10,11 +10,12 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { width: 100%; height: 100%; font-family: 'Courier New', monospace; background: transparent; color: var(--green); overflow: hidden; user-select: none; }
         #scanlines { position: fixed; inset: 0; pointer-events: none; z-index: 999; background: repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px); }
-        #hud { position: fixed; bottom: 20px; left: 20px; padding: 14px 18px; background: var(--bg); border: 1px solid var(--green); border-radius: 6px; backdrop-filter: blur(4px); pointer-events: none; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 0 12px rgba(0,255,65,0.2); }
+        /* FIX: HUD Z-INDEX */
+        #hud { position: fixed; bottom: 20px; left: 20px; z-index: 10005; padding: 14px 18px; background: var(--bg); border: 1px solid var(--green); border-radius: 6px; backdrop-filter: blur(4px); pointer-events: none; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 0 12px rgba(0,255,65,0.2); }
         .hud-row { display: flex; justify-content: space-between; gap: 24px; font-size: 13px; font-weight: bold; text-shadow: 0 0 6px var(--green); }
         .hud-row .val { min-width: 60px; text-align: right; }
         .heat-alert { color: var(--red); text-shadow: 0 0 6px var(--red); animation: pulse 1s infinite; }
-        #terminal { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--terminal-bg); border: 2px solid var(--green); box-shadow: 0 0 30px rgba(0,255,65,0.3); padding: 20px; }
+        #terminal { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--terminal-bg); border: 2px solid var(--green); box-shadow: 0 0 30px rgba(0,255,65,0.3); padding: 20px; z-index: 1000; }
         .t-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--green); padding-bottom: 12px; margin-bottom: 16px; }
         .t-header h2 { font-size: 16px; letter-spacing: 2px; }
         .close-btn { background: transparent; border: 1px solid var(--green); color: var(--green); cursor: pointer; padding: 6px 12px; font-family: inherit; font-size: 13px; }
@@ -41,7 +42,7 @@
     </div>
     <div id="terminal">
         <div class="t-header">
-            <h2>SYNDICATE TERMINAL v2.0</h2>
+            <h2>SYNDICATE TERMINAL v2.1 (HUD FIX)</h2>
             <button class="close-btn" onclick="closeTerminal()">[X] DISCONNECT</button>
         </div>
         <div class="grid">
@@ -100,10 +101,10 @@
                 let msg = raw;
                 if (typeof raw === 'string') { try { msg = JSON.parse(raw); } catch(e) { if (raw === 'open') openTerminal(); log('MSG: ' + raw); return; } }
                 if (msg.action === 'sync') {
-                    if (msg.dirty !== undefined) state.dirty = msg.dirty;
-                    if (msg.clean !== undefined) state.clean = msg.clean;
-                    if (msg.heat !== undefined) state.heat = msg.heat;
-                    if (msg.rackets !== undefined) state.rackets = msg.rackets;
+                    if (msg.dirty !== undefined) state.dirty = Number(msg.dirty) || 0;
+                    if (msg.clean !== undefined) state.clean = Number(msg.clean) || 0;
+                    if (msg.heat !== undefined) state.heat = Number(msg.heat) || 0;
+                    if (msg.rackets !== undefined) state.rackets = Number(msg.rackets) || 0;
                     updateHUD();
                 } else if (msg.action === 'open') { openTerminal(); }
             });
